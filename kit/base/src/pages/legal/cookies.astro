@@ -1,0 +1,54 @@
+---
+import Legal from '../../layouts/Legal.astro';
+import { negocio } from '../../data/negocio';
+import { cookies } from '../../data/legal';
+---
+
+<Legal titulo={`Política de cookies · ${negocio.nombre}`} descripcion={`Cookies que utiliza la web de ${negocio.nombre}.`}>
+  <h1>Política de cookies</h1>
+
+  <p>
+    Una cookie es un pequeño archivo que un sitio web guarda en tu navegador. A continuación se indican las que
+    utiliza esta web.
+  </p>
+
+  {
+    cookies.length === 0 ? (
+      <p>
+        Esta web no instala cookies propias ni de terceros. Las tipografías se sirven desde nuestro propio servidor
+        y los mapas solo se cargan si lo solicitas expresamente.
+      </p>
+    ) : (
+      <div class="tabla-scroll" tabindex="0" role="region" aria-label="Cookies utilizadas">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Cookie</th>
+              <th scope="col">Proveedor</th>
+              <th scope="col">Finalidad</th>
+              <th scope="col">Duración</th>
+              <th scope="col">Tipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cookies.map((c) => (
+              <tr>
+                <td>{c.nombre}</td>
+                <td>{c.proveedor}</td>
+                <td>{c.finalidad}</td>
+                <td>{c.duracion}</td>
+                <td>{c.tipo}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  <h2>Cómo gestionarlas</h2>
+  <p>
+    Puedes bloquear o eliminar las cookies desde la configuración de tu navegador. Si bloqueas las cookies
+    técnicas, algunas funciones (como el acceso a áreas privadas) pueden dejar de funcionar.
+  </p>
+</Legal>

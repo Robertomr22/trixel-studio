@@ -1,0 +1,181 @@
+---
+/**
+ * Layout del panel de reservas. Es una herramienta de trabajo para el restaurante:
+ * prioriza claridad, contraste y botones grandes en móvil. No sigue la estética de la web.
+ */
+import { negocio } from '../data/negocio';
+
+interface Props {
+  titulo: string;
+  conMenu?: boolean;
+}
+
+const { titulo, conMenu = true } = Astro.props;
+const ruta = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{titulo} · Panel de {negocio.nombre}</title>
+  </head>
+  <body>
+    <header class="barra">
+      <p class="barra__nombre">{negocio.nombre} <span>· reservas</span></p>
+      {
+        conMenu && (
+          <nav aria-label="Panel">
+            <a href="/admin" aria-current={ruta === '/admin' ? 'page' : undefined}>
+              Reservas
+            </a>
+            <a href="/admin/nueva" aria-current={ruta === '/admin/nueva' ? 'page' : undefined}>
+              Añadir reserva
+            </a>
+            <form method="post" action="/admin/salir">
+              <button type="submit">Salir</button>
+            </form>
+          </nav>
+        )
+      }
+    </header>
+    <main id="contenido">
+      <slot />
+    </main>
+    <style is:global>
+      :root {
+        --tinta: #18181a;
+        --suave: #5d5d63;
+        --linea: #dedde2;
+        --fondo: #f6f6f8;
+        --papel: #fff;
+        --acento: #1e4fd8;
+        --ok: #12704a;
+        --aviso: #a15c00;
+        --error: #b3261e;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--fondo);
+        color: var(--tinta);
+        font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      .barra {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        padding: 0.75rem clamp(1rem, 3vw, 2rem);
+        background: var(--papel);
+        border-bottom: 1px solid var(--linea);
+      }
+      .barra__nombre {
+        margin: 0;
+        font-weight: 650;
+      }
+      .barra__nombre span {
+        font-weight: 400;
+        color: var(--suave);
+      }
+      .barra nav {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+      .barra nav a,
+      .barra nav button {
+        padding: 0.5rem 0.75rem;
+        border: 0;
+        background: none;
+        color: var(--tinta);
+        text-decoration: none;
+        font: inherit;
+        border-radius: 6px;
+      }
+      .barra nav a[aria-current='page'] {
+        background: var(--fondo);
+        font-weight: 600;
+      }
+      .barra nav form {
+        margin: 0;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1.5rem clamp(1rem, 3vw, 2rem) 4rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 1rem;
+      }
+      a {
+        color: var(--acento);
+      }
+      label {
+        display: block;
+        font-weight: 550;
+        margin-bottom: 0.3rem;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 44px;
+        padding: 0.55rem 0.7rem;
+        border: 1px solid #b9b8c0;
+        border-radius: 6px;
+        background: var(--papel);
+        font: inherit;
+      }
+      input[type='checkbox'] {
+        width: auto;
+        min-height: 0;
+      }
+      .boton {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--tinta);
+        border-radius: 6px;
+        background: var(--papel);
+        color: var(--tinta);
+        font: inherit;
+        font-weight: 550;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .boton--principal {
+        background: var(--tinta);
+        color: #fff;
+      }
+      .boton--peligro {
+        border-color: var(--error);
+        color: var(--error);
+      }
+      .aviso {
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        background: #e8f3ee;
+        color: var(--ok);
+      }
+      .aviso--error {
+        background: #fbeceb;
+        color: var(--error);
+      }
+      :focus-visible {
+        outline: 3px solid var(--acento);
+        outline-offset: 2px;
+      }
+    </style>
+  </body>
+</html>

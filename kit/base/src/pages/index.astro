@@ -1,0 +1,15 @@
+---
+/**
+ * Marcador del kit. Se sustituye por la portada real en la fase de desarrollo.
+ * tools/qa.mjs falla si este texto sigue presente en el build.
+ */
+import Base from '../layouts/Base.astro';
+import { negocio } from '../data/negocio';
+---
+
+<Base titulo={negocio.nombre} descripcion={negocio.descripcion} noindex>
+  <main id="contenido" style="padding: 3rem 1.5rem; font-family: system-ui, sans-serif">
+    <h1>TRIXEL-MARCADOR: proyecto en preparación</h1>
+    <p>Las propuestas visuales están en <a href="/propuestas">/propuestas</a> (solo en desarrollo).</p>
+  </main>
+</Base>

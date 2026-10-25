@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-propuestas/
+.astro/
+informes/
+capturas/
+.correos/
+
+# Secretos: nunca al repositorio
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log

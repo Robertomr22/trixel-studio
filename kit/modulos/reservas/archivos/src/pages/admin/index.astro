@@ -1,0 +1,417 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import type { Reserva } from '../../lib/db/esquema';
+import { serviciosDelDia } from '../../lib/reservas/disponibilidad';
+import { ahoraEn, esFechaValida, fechaLarga, sumarDias } from '../../lib/reservas/fechas';
+import { contarPendientes, eventosDe, listarReservas } from '../../lib/reservas/repositorio';
+import {
+  cancelarDesdePanel,
+  confirmarReserva,
+  mantenimientoDiario,
+  rechazarReserva,
+} from '../../lib/reservas/servicio';
+import { dependencias } from '../../lib/servidor/contexto';
+
+export const prerender = false;
+
+const d = dependencias();
+const hoy = ahoraEn(d.config.zonaHoraria).fecha;
+
+// --- Acciones (POST → redirección, para que recargar no repita la acción) ---
+const MENSAJES_OK: Record<string, string> = {
+  confirmada: 'Reserva confirmada. El cliente recibirá un correo.',
+  rechazada: 'Solicitud rechazada. El cliente recibirá un correo.',
+  cancelada: 'Reserva cancelada.',
+  anadida: 'Reserva añadida.',
+};
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const id = Number(datos.get('id'));
+  const accion = String(datos.get('accion') ?? '');
+  const volver = new URL(Astro.url);
+  volver.searchParams.delete('ok');
+  volver.searchParams.delete('error');
+  let resultado: { ok: boolean; mensaje?: string } = { ok: false, mensaje: 'Acción no válida.' };
+  if (Number.isInteger(id) && id > 0) {
+    if (accion === 'confirmar') resultado = await confirmarReserva(d, id);
+    if (accion === 'rechazar') resultado = await rechazarReserva(d, id, String(datos.get('mensaje') ?? '').slice(0, 400));
+    if (accion === 'cancelar') resultado = await cancelarDesdePanel(d, id, datos.get('avisar') === 'on');
+  }
+  if (resultado.ok) volver.searchParams.set('ok', { confirmar: 'confirmada', rechazar: 'rechazada', cancelar: 'cancelada' }[accion] ?? '');
+  else volver.searchParams.set('error', resultado.mensaje ?? 'No se pudo completar la acción.');
+  return Astro.redirect(`${volver.pathname}${volver.search}`, 303);
+}
+
+await mantenimientoDiario(d).catch((e: Error) => console.error('[reservas] Mantenimiento:', e.message));
+
+// --- Vista ---
+const p = Astro.url.searchParams;
+const pendientes = await contarPendientes(d.db, hoy);
+const vista = p.get('vista') ?? (pendientes > 0 ? 'pendientes' : 'dia');
+const fechaParam = p.get('fecha') ?? hoy;
+const fecha = esFechaValida(fechaParam) ? fechaParam : hoy;
+
+let lista: Reserva[] = [];
+if (vista === 'pendientes') lista = await listarReservas(d.db, { desde: hoy, hasta: '9999-12-31', estados: ['pendiente'] });
+else if (vista === 'semana') lista = await listarReservas(d.db, { desde: hoy, hasta: sumarDias(hoy, 6), estados: ['pendiente', 'confirmada'] });
+else lista = await listarReservas(d.db, { desde: fecha, hasta: fecha });
+
+const eventos = await eventosDe(d.db, lista.map((r) => r.id));
+const conFalloCorreo = new Set(eventos.filter((e) => e.accion === 'correo_fallido').map((e) => e.reservaId));
+
+const resumen =
+  vista === 'dia'
+    ? serviciosDelDia(d.config, fecha).map((s) => ({
+        nombre: s.nombre,
+        aforo: s.aforo,
+        ocupado: lista
+          .filter((r) => r.servicio === s.id && (r.estado === 'pendiente' || r.estado === 'confirmada'))
+          .reduce((t, r) => t + r.personas, 0),
+      }))
+    : [];
+
+const nombreServicio = (id: string) => d.config.servicios.find((s) => s.id === id)?.nombre ?? id;
+const ETIQUETA: Record<string, string> = {
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  rechazada: 'Rechazada',
+  cancelada: 'Cancelada',
+};
+
+const porFecha = Map.groupBy(lista, (r) => r.fecha);
+const ok = p.get('ok');
+const error = p.get('error');
+---
+
+<Admin titulo="Reservas">
+  {ok && MENSAJES_OK[ok] && <p class="aviso" role="status">{MENSAJES_OK[ok]}</p>}
+  {error && <p class="aviso aviso--error" role="alert">{error}</p>}
+
+  <div class="pestanas" role="navigation" aria-label="Vistas">
+    <a href="/admin?vista=pendientes" aria-current={vista === 'pendientes' ? 'page' : undefined}>
+      Pendientes <span class="contador">{pendientes}</span>
+    </a>
+    <a href={`/admin?vista=dia&fecha=${hoy}`} aria-current={vista === 'dia' && fecha === hoy ? 'page' : undefined}>Hoy</a>
+    <a href="/admin?vista=semana" aria-current={vista === 'semana' ? 'page' : undefined}>Próximos 7 días</a>
+    <form method="get" action="/admin" class="elegir-fecha">
+      <input type="hidden" name="vista" value="dia" />
+      <label class="sr" for="fecha">Ir a fecha</label>
+      <input id="fecha" type="date" name="fecha" value={fecha} />
+      <button class="boton" type="submit">Ver día</button>
+    </form>
+  </div>
+
+  {
+    vista === 'dia' && (
+      <div class="cabecera-dia">
+        <a href={`/admin?vista=dia&fecha=${sumarDias(fecha, -1)}`} aria-label="Día anterior">←</a>
+        <h1>{fechaLarga(fecha)}</h1>
+        <a href={`/admin?vista=dia&fecha=${sumarDias(fecha, 1)}`} aria-label="Día siguiente">→</a>
+      </div>
+    )
+  }
+  {vista === 'pendientes' && <h1>Solicitudes pendientes de confirmar</h1>}
+  {vista === 'semana' && <h1>Próximos 7 días</h1>}
+
+  {
+    resumen.length > 0 && (
+      <ul class="aforo">
+        {resumen.map((s) => (
+          <li>
+            <strong>{s.nombre}</strong> {s.ocupado} / {s.aforo} comensales
+            <span class="barra-aforo" style={`--uso:${Math.min(100, (s.ocupado / s.aforo) * 100)}%`} aria-hidden="true" />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  {vista === 'dia' && resumen.length === 0 && <p class="vacio">Ese día no hay servicio de reservas.</p>}
+
+  {lista.length === 0 && <p class="vacio">No hay reservas en esta vista.</p>}
+
+  {
+    [...porFecha].map(([dia, reservasDia]) => (
+      <section>
+        {vista !== 'dia' && <h2 class="dia">{fechaLarga(dia)}</h2>}
+        <ul class="lista">
+          {reservasDia.map((r) => (
+            <li class={`reserva reserva--${r.estado}`} data-codigo={r.codigo}>
+              <div class="reserva__principal">
+                <p class="reserva__hora">
+                  {r.hora}
+                  <span>{nombreServicio(r.servicio)}</span>
+                </p>
+                <div>
+                  <p class="reserva__nombre">
+                    {r.nombre} · <strong>{r.personas} pers.</strong>
+                  </p>
+                  <p class="reserva__contacto">
+                    {r.telefono && <a href={`tel:${r.telefono.replace(/\s/g, '')}`}>{r.telefono}</a>}
+                    {r.email && <a href={`mailto:${r.email}`}>{r.email}</a>}
+                  </p>
+                  {r.comentarios && <p class="reserva__nota">“{r.comentarios}”</p>}
+                  <p class="reserva__meta">
+                    <span class={`estado estado--${r.estado}`}>{ETIQUETA[r.estado]}</span>
+                    Ref. {r.codigo} · {r.origen === 'web' ? 'web' : 'teléfono'}
+                    {conFalloCorreo.has(r.id) && <span class="fallo">⚠ algún correo no se pudo enviar</span>}
+                  </p>
+                </div>
+              </div>
+              {(r.estado === 'pendiente' || r.estado === 'confirmada') && (
+                <div class="reserva__acciones">
+                  {r.estado === 'pendiente' && (
+                    <form method="post">
+                      <input type="hidden" name="id" value={r.id} />
+                      <button class="boton boton--principal" name="accion" value="confirmar">
+                        Confirmar
+                      </button>
+                    </form>
+                  )}
+                  {r.estado === 'pendiente' && (
+                    <details>
+                      <summary class="boton">Rechazar</summary>
+                      <form method="post" class="desplegable">
+                        <input type="hidden" name="id" value={r.id} />
+                        <label for={`m-${r.id}`}>Mensaje para el cliente (opcional)</label>
+                        <textarea id={`m-${r.id}`} name="mensaje" rows="2" maxlength="400" />
+                        <button class="boton boton--peligro" name="accion" value="rechazar">
+                          Rechazar solicitud
+                        </button>
+                      </form>
+                    </details>
+                  )}
+                  <details>
+                    <summary class="boton">Cancelar</summary>
+                    <form method="post" class="desplegable">
+                      <input type="hidden" name="id" value={r.id} />
+                      {r.email && (
+                        <label class="casilla">
+                          <input type="checkbox" name="avisar" checked /> Avisar al cliente por correo
+                        </label>
+                      )}
+                      <button class="boton boton--peligro" name="accion" value="cancelar">
+                        Cancelar reserva
+                      </button>
+                    </form>
+                  </details>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</Admin>
+
+<style>
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .pestanas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .pestanas > a {
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--linea);
+    color: var(--tinta);
+    text-decoration: none;
+  }
+  .pestanas > a[aria-current='page'] {
+    background: var(--tinta);
+    color: #fff;
+    border-color: var(--tinta);
+  }
+  .contador {
+    display: inline-block;
+    min-width: 1.4em;
+    margin-left: 0.25rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--aviso);
+    color: #fff;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+  .elegir-fecha {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: auto;
+  }
+  .elegir-fecha input {
+    width: auto;
+  }
+  .cabecera-dia {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .cabecera-dia h1 {
+    margin: 0;
+    text-transform: capitalize;
+  }
+  .cabecera-dia a {
+    font-size: 1.4rem;
+    text-decoration: none;
+    padding: 0.25rem 0.6rem;
+  }
+  .aforo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    list-style: none;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0 1.5rem;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+  }
+  .aforo li {
+    flex: 1 1 200px;
+  }
+  .barra-aforo {
+    display: block;
+    height: 6px;
+    margin-top: 0.4rem;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--tinta) var(--uso), var(--linea) var(--uso));
+  }
+  .dia {
+    font-size: 1rem;
+    margin: 1.75rem 0 0.5rem;
+    text-transform: capitalize;
+    color: var(--suave);
+  }
+  .vacio {
+    color: var(--suave);
+  }
+  .lista {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .reserva {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-left: 4px solid var(--linea);
+    border-radius: 10px;
+  }
+  .reserva--pendiente {
+    border-left-color: var(--aviso);
+  }
+  .reserva--confirmada {
+    border-left-color: var(--ok);
+  }
+  .reserva--rechazada,
+  .reserva--cancelada {
+    opacity: 0.65;
+  }
+  .reserva p {
+    margin: 0;
+  }
+  .reserva__principal {
+    display: flex;
+    gap: 1.25rem;
+  }
+  .reserva__hora {
+    font-size: 1.5rem;
+    font-weight: 650;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .reserva__hora span {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--suave);
+  }
+  .reserva__nombre {
+    font-size: 1.05rem;
+  }
+  .reserva__contacto {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+  }
+  .reserva__nota {
+    margin-top: 0.3rem !important;
+    color: var(--suave);
+    font-style: italic;
+  }
+  .reserva__meta {
+    margin-top: 0.4rem !important;
+    font-size: 0.85rem;
+    color: var(--suave);
+  }
+  .estado {
+    display: inline-block;
+    margin-right: 0.5rem;
+    padding: 0 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    background: var(--fondo);
+  }
+  .estado--pendiente {
+    color: var(--aviso);
+  }
+  .estado--confirmada {
+    color: var(--ok);
+  }
+  .fallo {
+    display: block;
+    color: var(--error);
+  }
+  .reserva__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .reserva__acciones form {
+    margin: 0;
+  }
+  details summary {
+    list-style: none;
+  }
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+  .desplegable {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.5rem !important;
+    min-width: 240px;
+  }
+  .casilla {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-weight: 400;
+  }
+  @media (max-width: 600px) {
+    .elegir-fecha {
+      margin-left: 0;
+      width: 100%;
+    }
+    .elegir-fecha input {
+      flex: 1;
+    }
+  }
+</style>

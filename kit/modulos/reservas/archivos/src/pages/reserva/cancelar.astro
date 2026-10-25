@@ -1,0 +1,104 @@
+---
+/**
+ * Cancelación desde el enlace del correo. Pide confirmar con un botón (POST) para que
+ * los antivirus que "visitan" los enlaces de los correos no cancelen reservas solos.
+ * Rediseña su aspecto con el layout del proyecto si hace falta.
+ */
+import Base from '../../layouts/Base.astro';
+import { fechaLarga } from '../../lib/reservas/fechas';
+import { cancelarPorEnlace, reservaPorEnlace } from '../../lib/reservas/servicio';
+import { dependencias } from '../../lib/servidor/contexto';
+
+export const prerender = false;
+
+const d = dependencias();
+const codigo = Astro.url.searchParams.get('c') ?? '';
+const token = Astro.url.searchParams.get('t') ?? '';
+
+let estado: 'confirmar' | 'cancelada' | 'invalido' = 'invalido';
+let mensaje = '';
+let reserva = await reservaPorEnlace(d, codigo, token);
+
+if (Astro.request.method === 'POST') {
+  const r = await cancelarPorEnlace(d, codigo, token);
+  if (r.ok) {
+    estado = 'cancelada';
+    reserva = r.valor;
+  } else {
+    mensaje = r.mensaje;
+  }
+} else if (reserva && (reserva.estado === 'pendiente' || reserva.estado === 'confirmada')) {
+  estado = 'confirmar';
+}
+if (estado === 'invalido') Astro.response.status = 404;
+---
+
+<Base titulo={`Cancelar reserva · ${d.restaurante.nombre}`} descripcion="Cancelación de reserva." noindex>
+  <main id="contenido" class="cancelar">
+    {
+      estado === 'confirmar' && reserva && (
+        <>
+          <h1>¿Cancelar tu reserva?</h1>
+          <p>
+            {fechaLarga(reserva.fecha)} a las {reserva.hora} · {reserva.personas}{' '}
+            {reserva.personas === 1 ? 'persona' : 'personas'} · a nombre de {reserva.nombre}
+          </p>
+          <form method="post">
+            <button type="submit">Sí, cancelar la reserva</button>
+          </form>
+          <p class="nota">Si no quieres cancelarla, simplemente cierra esta página.</p>
+        </>
+      )
+    }
+    {
+      estado === 'cancelada' && (
+        <>
+          <h1>Reserva cancelada</h1>
+          <p>Te hemos enviado un correo de confirmación. Gracias por avisarnos.</p>
+          <p>
+            <a href="/">Volver a la web</a>
+          </p>
+        </>
+      )
+    }
+    {
+      estado === 'invalido' && (
+        <>
+          <h1>Este enlace ya no es válido</h1>
+          <p>{mensaje || 'La reserva ya estaba cancelada o el enlace no es correcto.'}</p>
+          {d.restaurante.telefono && <p>Si necesitas ayuda, llámanos al {d.restaurante.telefono}.</p>}
+        </>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .cancelar {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 10vw, 7rem) 1.25rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  .cancelar h1 {
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+    line-height: 1.15;
+    margin-bottom: 1rem;
+  }
+  .cancelar form {
+    margin: 1.5rem 0;
+  }
+  .cancelar button {
+    min-height: 48px;
+    padding: 0.7rem 1.25rem;
+    border: 0;
+    background: #1d1d1b;
+    color: #fff;
+    font-weight: 600;
+  }
+  .nota {
+    color: #5c5a55;
+    font-size: 0.9rem;
+  }
+</style>

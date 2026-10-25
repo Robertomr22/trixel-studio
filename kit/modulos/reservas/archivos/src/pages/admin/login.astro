@@ -1,0 +1,66 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { verificarClave } from '../../lib/seguridad/clave';
+import { abrirSesion, leerSesion } from '../../lib/seguridad/sesion';
+import { igualSeguro } from '../../lib/seguridad/tokens';
+import { admin, ipDe, limites } from '../../lib/servidor/contexto';
+
+export const prerender = false;
+
+if (leerSesion(Astro.cookies, admin.secreto)) return Astro.redirect('/admin', 303);
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  if (!limites.login.permitir(ipDe(Astro))) {
+    error = 'Demasiados intentos. Espera 15 minutos.';
+    Astro.response.status = 429;
+  } else {
+    const datos = await Astro.request.formData();
+    const usuario = String(datos.get('usuario') ?? '').trim();
+    const clave = String(datos.get('clave') ?? '');
+    // Se verifica la clave siempre, aunque el usuario no coincida, para no revelar cuál falla.
+    const claveOk = await verificarClave(clave, admin.hash);
+    if (claveOk && igualSeguro(usuario, admin.usuario)) {
+      abrirSesion(Astro.cookies, admin.usuario, admin.secreto, Astro.url.protocol === 'https:');
+      return Astro.redirect('/admin', 303);
+    }
+    error = 'Usuario o contraseña incorrectos.';
+    Astro.response.status = 401;
+  }
+}
+---
+
+<Admin titulo="Entrar" conMenu={false}>
+  <div class="acceso">
+    <h1>Panel de reservas</h1>
+    {error && <p class="aviso aviso--error" role="alert">{error}</p>}
+    <form method="post">
+      <p>
+        <label for="usuario">Usuario</label>
+        <input id="usuario" name="usuario" autocomplete="username" required />
+      </p>
+      <p>
+        <label for="clave">Contraseña</label>
+        <input id="clave" name="clave" type="password" autocomplete="current-password" required />
+      </p>
+      <button class="boton boton--principal" type="submit">Entrar</button>
+    </form>
+  </div>
+</Admin>
+
+<style>
+  .acceso {
+    max-width: 380px;
+    margin: 8vh auto 0;
+    padding: 2rem;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+  }
+  .acceso p {
+    margin: 0 0 1rem;
+  }
+  .acceso button {
+    width: 100%;
+  }
+</style>

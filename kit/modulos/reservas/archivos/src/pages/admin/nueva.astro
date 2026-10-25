@@ -1,0 +1,115 @@
+---
+/** Alta manual de reservas (teléfono o en persona): cuentan para el aforo como las de la web. */
+import Admin from '../../layouts/Admin.astro';
+import { ahoraEn } from '../../lib/reservas/fechas';
+import { horasDeServicio } from '../../lib/reservas/disponibilidad';
+import { crearReservaManual } from '../../lib/reservas/servicio';
+import { primerError, reservaManualSchema } from '../../lib/reservas/validacion';
+import { dependencias } from '../../lib/servidor/contexto';
+
+export const prerender = false;
+
+const d = dependencias();
+const hoy = ahoraEn(d.config.zonaHoraria).fecha;
+let error = '';
+let valores: Record<string, string> = { fecha: hoy, personas: '2', estado: 'confirmada' };
+
+if (Astro.request.method === 'POST') {
+  const formulario = Object.fromEntries(await Astro.request.formData()) as Record<string, string>;
+  valores = formulario;
+  const datos = reservaManualSchema.safeParse(formulario);
+  if (!datos.success) {
+    error = primerError(datos.error);
+  } else {
+    const r = await crearReservaManual(d, { ...datos.data, forzar: Boolean(datos.data.forzar) });
+    if (r.ok) return Astro.redirect(`/admin?vista=dia&fecha=${r.valor.fecha}&ok=anadida`, 303);
+    error = r.mensaje;
+  }
+}
+
+const horas = [...new Set(d.config.servicios.flatMap((s) => horasDeServicio(s)))].sort();
+---
+
+<Admin titulo="Añadir reserva">
+  <h1>Añadir reserva</h1>
+  <p class="ayuda">Para reservas tomadas por teléfono o en persona. Cuentan para el aforo igual que las de la web.</p>
+  {error && <p class="aviso aviso--error" role="alert">{error}</p>}
+  <form method="post" class="ficha">
+    <p>
+      <label for="fecha">Fecha</label>
+      <input id="fecha" name="fecha" type="date" required value={valores.fecha} />
+    </p>
+    <p>
+      <label for="hora">Hora</label>
+      <select id="hora" name="hora" required>
+        {horas.map((h) => <option selected={valores.hora === h}>{h}</option>)}
+      </select>
+    </p>
+    <p>
+      <label for="personas">Personas</label>
+      <input id="personas" name="personas" type="number" min="1" max="50" required value={valores.personas} />
+    </p>
+    <p class="ancho">
+      <label for="nombre">Nombre</label>
+      <input id="nombre" name="nombre" required maxlength="120" value={valores.nombre} />
+    </p>
+    <p>
+      <label for="telefono">Teléfono</label>
+      <input id="telefono" name="telefono" type="tel" maxlength="32" value={valores.telefono} />
+    </p>
+    <p>
+      <label for="email">Email (opcional)</label>
+      <input id="email" name="email" type="email" maxlength="254" value={valores.email} />
+    </p>
+    <p class="ancho">
+      <label for="comentarios">Notas</label>
+      <textarea id="comentarios" name="comentarios" rows="2" maxlength="600">{valores.comentarios}</textarea>
+    </p>
+    <p>
+      <label for="estado">Estado</label>
+      <select id="estado" name="estado">
+        <option value="confirmada" selected={valores.estado !== 'pendiente'}>Confirmada</option>
+        <option value="pendiente" selected={valores.estado === 'pendiente'}>Pendiente</option>
+      </select>
+    </p>
+    <p class="casilla">
+      <input id="forzar" name="forzar" type="checkbox" checked={valores.forzar === 'on'} />
+      <label for="forzar">Aceptar aunque se supere el aforo</label>
+    </p>
+    <p class="ancho">
+      <button class="boton boton--principal" type="submit">Guardar reserva</button>
+      <a class="boton" href="/admin">Volver</a>
+    </p>
+  </form>
+</Admin>
+
+<style>
+  .ayuda {
+    color: var(--suave);
+    margin-top: -0.5rem;
+  }
+  .ficha {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0 1.25rem;
+    padding: 1.5rem;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+  }
+  .ficha p {
+    margin: 0 0 1rem;
+  }
+  .ancho {
+    grid-column: 1 / -1;
+  }
+  .casilla {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .casilla label {
+    margin: 0;
+    font-weight: 400;
+  }
+</style>

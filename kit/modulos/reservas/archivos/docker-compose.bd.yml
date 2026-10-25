@@ -1,0 +1,19 @@
+# Base de datos LOCAL para desarrollo y pruebas (no se usa en producción).
+# Arrancar:  docker compose -f docker-compose.bd.yml up -d
+# Parar:     docker compose -f docker-compose.bd.yml down
+# Las bases de datos <proyecto>_dev y <proyecto>_test se crean con scripts/bd-inicial.sql.
+services:
+  bd:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: raiz_local
+      MARIADB_USER: trixel
+      MARIADB_PASSWORD: trixel_local
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - bd:/var/lib/mysql
+      - ./scripts/bd-inicial.sql:/docker-entrypoint-initdb.d/1-inicial.sql:ro
+volumes:
+  bd: {}

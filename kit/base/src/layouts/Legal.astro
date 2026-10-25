@@ -1,0 +1,59 @@
+---
+/**
+ * Layout de las páginas legales. Al crear el layout propio del proyecto,
+ * cambia este archivo para que envuelva a ese layout y herede cabecera y pie.
+ */
+import Base from './Base.astro';
+
+interface Props {
+  titulo: string;
+  descripcion: string;
+}
+
+const { titulo, descripcion } = Astro.props;
+---
+
+<Base titulo={titulo} descripcion={descripcion}>
+  <main id="contenido" class="legal">
+    <slot />
+  </main>
+</Base>
+
+<style>
+  .legal {
+    max-width: 68ch;
+    margin-inline: auto;
+    padding: clamp(2rem, 6vw, 5rem) 1.25rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  .legal :global(h1) {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+  }
+  .legal :global(h2) {
+    font-size: 1.2rem;
+    margin: 2.25rem 0 0.75rem;
+  }
+  .legal :global(p),
+  .legal :global(ul),
+  .legal :global(table) {
+    margin-bottom: 1rem;
+  }
+  .legal :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .legal :global(th),
+  .legal :global(td) {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.5rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  }
+  .legal :global(.tabla-scroll) {
+    overflow-x: auto;
+  }
+</style>

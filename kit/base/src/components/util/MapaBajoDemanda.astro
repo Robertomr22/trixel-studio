@@ -1,0 +1,52 @@
+---
+/**
+ * Mapa que solo se carga si el visitante lo pide. Hasta entonces no hay peticiones
+ * a terceros ni cookies, así que no hace falta banner de consentimiento por el mapa.
+ * Usa OpenStreetMap (sin cookies de seguimiento). El aspecto lo define el proyecto
+ * con las clases .mapa, .mapa__boton y .mapa__enlace.
+ */
+interface Props {
+  lat: number;
+  lng: number;
+  /** Texto accesible del lugar, p. ej. "Restaurante X, Calle Y 3, Málaga". */
+  lugar: string;
+  /** Enlace externo "Cómo llegar". */
+  enlace?: string | undefined;
+  zoom?: number;
+  class?: string;
+}
+
+const { lat, lng, lugar, enlace, zoom = 16, class: clase } = Astro.props;
+const d = 0.004 * (17 - Math.min(zoom, 17) + 1);
+const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - d},${lat - d / 2},${lng + d},${lat + d / 2}&layer=mapnik&marker=${lat},${lng}`;
+---
+
+<div class:list={['mapa', clase]} data-mapa-src={src} data-mapa-titulo={`Mapa: ${lugar}`}>
+  <slot />
+  <button type="button" class="mapa__boton">Mostrar mapa</button>
+  {
+    enlace && (
+      <a class="mapa__enlace" href={enlace} target="_blank" rel="noopener">
+        Cómo llegar
+      </a>
+    )
+  }
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-mapa-src]').forEach((contenedor) => {
+    contenedor.querySelector('.mapa__boton')?.addEventListener(
+      'click',
+      () => {
+        const iframe = document.createElement('iframe');
+        iframe.src = contenedor.dataset.mapaSrc ?? '';
+        iframe.title = contenedor.dataset.mapaTitulo ?? 'Mapa';
+        iframe.loading = 'lazy';
+        iframe.referrerPolicy = 'no-referrer';
+        iframe.className = 'mapa__iframe';
+        contenedor.replaceChildren(iframe, ...Array.from(contenedor.querySelectorAll('.mapa__enlace')));
+      },
+      { once: true },
+    );
+  });
+</script>

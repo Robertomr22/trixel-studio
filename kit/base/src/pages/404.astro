@@ -1,0 +1,25 @@
+---
+/** Página 404 técnica. Rediséñala con la dirección de arte del proyecto. */
+import Base from '../layouts/Base.astro';
+import { negocio } from '../data/negocio';
+---
+
+<Base titulo={`Página no encontrada · ${negocio.nombre}`} descripcion="La página que buscas no existe." noindex>
+  <main id="contenido" class="no-encontrada">
+    <h1>Esta página no existe</h1>
+    <p>Puede que el enlace esté mal escrito o que la página se haya movido.</p>
+    <p><a href="/">Volver al inicio</a></p>
+  </main>
+</Base>
+
+<style>
+  .no-encontrada {
+    display: grid;
+    place-content: center;
+    gap: 1rem;
+    min-height: 70svh;
+    padding: 2rem;
+    text-align: center;
+    font-family: system-ui, sans-serif;
+  }
+</style>

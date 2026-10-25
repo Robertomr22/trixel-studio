@@ -1,0 +1,442 @@
+---
+/**
+ * Formulario de solicitud de reserva con disponibilidad real.
+ *
+ * Funcionamiento: no depende de ningún framework. Consulta /api/reservas/disponibilidad al
+ * elegir fecha y personas, muestra solo las horas con sitio y envía a /api/reservas.
+ *
+ * Diseño: la estructura es estable (clases .rf__*) y los estilos base usan variables --rf-*.
+ * Cada proyecto lo adapta a su dirección de arte redefiniendo esas variables o las clases,
+ * nunca copiando y modificando la lógica.
+ */
+import { negocio } from '../../data/negocio';
+
+interface Props {
+  titulo?: string;
+  urlPrivacidad?: string;
+  class?: string;
+}
+
+const { titulo = 'Reserva tu mesa', urlPrivacidad = '/legal/privacidad', class: clase } = Astro.props;
+const telefono = negocio.contacto.telefono;
+---
+
+<section class:list={['rf', clase]} aria-labelledby="rf-titulo" data-rf>
+  <h2 id="rf-titulo" class="rf__titulo">{titulo}</h2>
+  <slot name="intro" />
+
+  <noscript>
+    <p class="rf__aviso">
+      Para reservar online necesitas activar JavaScript.{telefono && ` También puedes llamarnos al ${telefono}.`}
+    </p>
+  </noscript>
+
+  <p class="rf__aviso" data-rf-no-disponible hidden>
+    Ahora mismo no podemos tomar reservas online.{telefono && ` Llámanos al ${telefono}.`}
+  </p>
+
+  <form class="rf__form" data-rf-form novalidate>
+    <fieldset class="rf__paso">
+      <legend class="rf__leyenda">Cuándo y cuántos</legend>
+      <div class="rf__fila">
+        <p class="rf__campo">
+          <label for="rf-fecha">Fecha</label>
+          <input id="rf-fecha" name="fecha" type="date" required />
+        </p>
+        <p class="rf__campo">
+          <label for="rf-personas">Personas</label>
+          <select id="rf-personas" name="personas" required>
+            {Array.from({ length: 8 }, (_, i) => <option value={i + 1} selected={i === 1}>{i + 1}</option>)}
+          </select>
+        </p>
+      </div>
+      <p class="rf__nota" data-rf-grupos hidden></p>
+    </fieldset>
+
+    <fieldset class="rf__paso" data-rf-horas-paso>
+      <legend class="rf__leyenda">Hora de llegada</legend>
+      <p class="rf__nota" data-rf-horas-estado aria-live="polite">Elige una fecha para ver las horas disponibles.</p>
+      <div class="rf__horas" data-rf-horas></div>
+    </fieldset>
+
+    <fieldset class="rf__paso">
+      <legend class="rf__leyenda">Tus datos</legend>
+      <div class="rf__fila">
+        <p class="rf__campo">
+          <label for="rf-nombre">Nombre</label>
+          <input id="rf-nombre" name="nombre" autocomplete="name" required maxlength="120" />
+        </p>
+        <p class="rf__campo">
+          <label for="rf-telefono">Teléfono</label>
+          <input id="rf-telefono" name="telefono" type="tel" autocomplete="tel" required maxlength="32" />
+        </p>
+      </div>
+      <p class="rf__campo">
+        <label for="rf-email">Email</label>
+        <input id="rf-email" name="email" type="email" autocomplete="email" required maxlength="254" />
+      </p>
+      <p class="rf__campo">
+        <label for="rf-comentarios">Comentarios <span class="rf__opcional">(opcional)</span></label>
+        <textarea id="rf-comentarios" name="comentarios" rows="3" maxlength="600"
+          placeholder="Alergias, trona, celebración…"></textarea>
+      </p>
+      <p class="rf__trampa" aria-hidden="true">
+        <label for="rf-web">No rellenes este campo</label>
+        <input id="rf-web" name="web" tabindex="-1" autocomplete="off" />
+      </p>
+      <p class="rf__casilla">
+        <input id="rf-acepto" name="acepto" type="checkbox" required />
+        <label for="rf-acepto">
+          He leído y acepto la <a href={urlPrivacidad} target="_blank" rel="noopener">política de privacidad</a>.
+        </label>
+      </p>
+    </fieldset>
+
+    <p class="rf__error" data-rf-error role="alert" hidden></p>
+    <button class="rf__enviar" type="submit" data-rf-enviar>Solicitar reserva</button>
+    <p class="rf__nota">
+      Recibirás un correo con tu solicitud. La reserva queda confirmada cuando el restaurante te responda.
+    </p>
+  </form>
+
+  <div class="rf__exito" data-rf-exito tabindex="-1" hidden>
+    <p class="rf__exito-titulo">Solicitud enviada</p>
+    <p data-rf-exito-texto></p>
+    <p class="rf__nota">Revisa tu correo (también la carpeta de spam). Te confirmaremos lo antes posible.</p>
+  </div>
+</section>
+
+<script>
+  type Franja = { servicio: string; nombreServicio: string; hora: string; disponible: boolean };
+  type Respuesta = {
+    rango?: { desde: string; hasta: string };
+    personas?: { min: number; maxOnline: number };
+    textoGrupos?: string;
+    t?: string;
+    franjas?: Franja[];
+    mensaje?: string;
+    error?: string;
+    campo?: string;
+    codigo?: string;
+  };
+
+  const API = '/api/reservas';
+
+  function formatearFecha(fecha: string) {
+    const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];
+    return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(a, m - 1, d)),
+    );
+  }
+
+  for (const raiz of document.querySelectorAll<HTMLElement>('[data-rf]')) {
+    const $ = <T extends Element>(sel: string) => raiz.querySelector<T>(sel)!;
+    const form = $<HTMLFormElement>('[data-rf-form]');
+    const fecha = $<HTMLInputElement>('#rf-fecha');
+    const personas = $<HTMLSelectElement>('#rf-personas');
+    const horas = $<HTMLDivElement>('[data-rf-horas]');
+    const estadoHoras = $<HTMLParagraphElement>('[data-rf-horas-estado]');
+    const grupos = $<HTMLParagraphElement>('[data-rf-grupos]');
+    const error = $<HTMLParagraphElement>('[data-rf-error]');
+    const enviar = $<HTMLButtonElement>('[data-rf-enviar]');
+    let token = '';
+    let consulta = 0;
+
+    const mostrarError = (texto: string) => {
+      error.textContent = texto;
+      error.hidden = !texto;
+    };
+
+    async function pedir(url: string, opciones?: RequestInit): Promise<{ estado: number; datos: Respuesta }> {
+      const r = await fetch(url, { headers: { Accept: 'application/json' }, ...opciones });
+      const datos = (await r.json().catch(() => ({}))) as Respuesta;
+      if (datos.t) token = datos.t;
+      return { estado: r.status, datos };
+    }
+
+    async function iniciar() {
+      try {
+        const { estado, datos } = await pedir(`${API}/disponibilidad`);
+        if (estado !== 200 || !datos.rango || !datos.personas) throw new Error();
+        fecha.min = datos.rango.desde;
+        fecha.max = datos.rango.hasta;
+        const { min, maxOnline } = datos.personas;
+        const elegido = Number(personas.value) || 2;
+        personas.replaceChildren(
+          ...Array.from({ length: maxOnline - min + 1 }, (_, i) => new Option(String(min + i), String(min + i))),
+          new Option(`Más de ${maxOnline}`, 'grupo'),
+        );
+        personas.value = String(Math.min(Math.max(elegido, min), maxOnline));
+        grupos.textContent = datos.textoGrupos ?? '';
+      } catch {
+        form.hidden = true;
+        $<HTMLElement>('[data-rf-no-disponible]').hidden = false;
+      }
+    }
+
+    async function cargarHoras() {
+      mostrarError('');
+      horas.replaceChildren();
+      const esGrupo = personas.value === 'grupo';
+      grupos.hidden = !esGrupo;
+      enviar.disabled = esGrupo;
+      if (esGrupo) {
+        estadoHoras.textContent = '';
+        return;
+      }
+      if (!fecha.value) {
+        estadoHoras.textContent = 'Elige una fecha para ver las horas disponibles.';
+        return;
+      }
+      const id = ++consulta;
+      estadoHoras.textContent = 'Consultando disponibilidad…';
+      try {
+        const q = new URLSearchParams({ fecha: fecha.value, personas: personas.value });
+        const { datos } = await pedir(`${API}/disponibilidad?${q}`);
+        if (id !== consulta) return;
+        const franjas = datos.franjas ?? [];
+        const libres = franjas.filter((f) => f.disponible);
+        if (datos.mensaje) {
+          estadoHoras.textContent = datos.mensaje;
+          return;
+        }
+        if (libres.length === 0) {
+          estadoHoras.textContent = `No quedan horas libres el ${formatearFecha(fecha.value)} para ${personas.value} personas. Prueba otro día.`;
+          return;
+        }
+        estadoHoras.textContent = `Horas disponibles el ${formatearFecha(fecha.value)}:`;
+        const porServicio = new Map<string, Franja[]>();
+        for (const f of franjas) porServicio.set(f.nombreServicio, [...(porServicio.get(f.nombreServicio) ?? []), f]);
+        for (const [nombre, lista] of porServicio) {
+          const grupo = document.createElement('div');
+          grupo.className = 'rf__servicio';
+          grupo.setAttribute('role', 'radiogroup');
+          grupo.setAttribute('aria-label', nombre);
+          const etiqueta = document.createElement('p');
+          etiqueta.className = 'rf__servicio-nombre';
+          etiqueta.textContent = nombre;
+          grupo.append(etiqueta);
+          for (const f of lista) {
+            const label = document.createElement('label');
+            label.className = 'rf__hora';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'hora';
+            radio.value = f.hora;
+            radio.required = true;
+            radio.disabled = !f.disponible;
+            label.append(radio, document.createTextNode(f.hora));
+            if (!f.disponible) label.title = 'Completo';
+            grupo.append(label);
+          }
+          horas.append(grupo);
+        }
+      } catch {
+        if (id === consulta) estadoHoras.textContent = 'No hemos podido consultar la disponibilidad. Inténtalo de nuevo.';
+      }
+    }
+
+    fecha.addEventListener('change', cargarHoras);
+    personas.addEventListener('change', cargarHoras);
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      mostrarError('');
+      const datos = new FormData(form);
+      if (!datos.get('hora')) return mostrarError('Elige una hora de llegada.');
+      if (!form.checkValidity()) {
+        const invalido = form.querySelector<HTMLInputElement>(':invalid');
+        invalido?.focus();
+        return mostrarError(
+          invalido?.id === 'rf-acepto'
+            ? 'Debes aceptar la política de privacidad.'
+            : 'Revisa los campos marcados: hay alguno vacío o con formato incorrecto.',
+        );
+      }
+      enviar.disabled = true;
+      enviar.textContent = 'Enviando…';
+      try {
+        const cuerpo = { ...Object.fromEntries(datos), acepto: datos.get('acepto') === 'on', t: token };
+        const { estado, datos: r } = await pedir(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(cuerpo),
+        });
+        if (estado === 201 && r.codigo) {
+          const exito = $<HTMLElement>('[data-rf-exito]');
+          $<HTMLElement>('[data-rf-exito-texto]').textContent =
+            `${formatearFecha(String(datos.get('fecha')))} a las ${datos.get('hora')}, ${datos.get('personas')} personas. Referencia: ${r.codigo}.`;
+          form.hidden = true;
+          exito.hidden = false;
+          exito.focus();
+          return;
+        }
+        mostrarError(r.mensaje ?? 'No hemos podido enviar la solicitud.');
+        if (estado === 409) await cargarHoras();
+        if (r.campo) form.querySelector<HTMLElement>(`[name="${r.campo}"]`)?.focus();
+      } catch {
+        mostrarError('No hay conexión. Comprueba tu red e inténtalo de nuevo.');
+      } finally {
+        enviar.disabled = false;
+        enviar.textContent = 'Solicitar reserva';
+      }
+    });
+
+    void iniciar();
+  }
+</script>
+
+<style>
+  .rf {
+    --rf-texto: inherit;
+    --rf-suave: color-mix(in srgb, currentColor 65%, transparent);
+    --rf-linea: color-mix(in srgb, currentColor 30%, transparent);
+    --rf-fondo-campo: transparent;
+    /* Colores concretos por defecto: cada proyecto los sustituye por los de su marca. */
+    --rf-acento: #1d1d1b;
+    --rf-texto-acento: #fff;
+    --rf-radio: 0;
+    --rf-hueco: 1.25rem;
+    color: var(--rf-texto);
+  }
+  .rf [hidden] {
+    display: none !important;
+  }
+  .rf__form,
+  .rf__paso {
+    display: grid;
+    gap: var(--rf-hueco);
+  }
+  .rf__paso {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  .rf__leyenda {
+    padding: 0;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  .rf__fila {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: var(--rf-hueco);
+  }
+  .rf__campo {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .rf__campo input,
+  .rf__campo select,
+  .rf__campo textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--rf-linea);
+    border-radius: var(--rf-radio);
+    background: var(--rf-fondo-campo);
+    color: inherit;
+  }
+  .rf__opcional,
+  .rf__nota {
+    color: var(--rf-suave);
+    font-size: 0.9em;
+  }
+  .rf__horas {
+    display: grid;
+    gap: 1rem;
+  }
+  .rf__servicio {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .rf__servicio-nombre {
+    width: 100%;
+    font-size: 0.85em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--rf-suave);
+  }
+  .rf__hora {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 5rem;
+    min-height: 44px;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid var(--rf-linea);
+    border-radius: var(--rf-radio);
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .rf__hora input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .rf__hora:has(input:checked) {
+    background: var(--rf-acento);
+    border-color: var(--rf-acento);
+    color: var(--rf-texto-acento);
+  }
+  .rf__hora:has(input:focus-visible) {
+    outline: 2px solid var(--rf-acento);
+    outline-offset: 2px;
+  }
+  .rf__hora:has(input:disabled) {
+    opacity: 0.4;
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+  .rf__casilla {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .rf__casilla input {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 0.2rem;
+    flex: none;
+  }
+  .rf__trampa {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .rf__error {
+    padding: 0.75rem 1rem;
+    border-left: 3px solid #b3261e;
+    background: color-mix(in srgb, #b3261e 10%, transparent);
+  }
+  .rf__enviar {
+    justify-self: start;
+    min-height: 52px;
+    padding: 0.8rem 1.6rem;
+    border: 1px solid var(--rf-acento);
+    border-radius: var(--rf-radio);
+    background: var(--rf-acento);
+    color: var(--rf-texto-acento);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .rf__enviar:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .rf__exito {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .rf__exito-titulo {
+    font-size: 1.4em;
+    font-weight: 600;
+  }
+</style>

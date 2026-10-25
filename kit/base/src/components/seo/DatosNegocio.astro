@@ -1,0 +1,61 @@
+---
+/**
+ * Datos estructurados (JSON-LD) del negocio local, generados SOLO a partir de negocio.json.
+ * No añade valoraciones ni reseñas: Google penaliza las autoatribuidas y no se inventan.
+ * `extra` permite añadir campos propios del sector (servesCuisine, menu, acceptsReservations…).
+ */
+import { negocio, pendientes } from '../../data/negocio';
+
+interface Props {
+  extra?: Record<string, unknown>;
+}
+
+const mapaDias: Record<string, string> = {
+  lunes: 'Monday',
+  martes: 'Tuesday',
+  miercoles: 'Wednesday',
+  jueves: 'Thursday',
+  viernes: 'Friday',
+  sabado: 'Saturday',
+  domingo: 'Sunday',
+};
+
+const d = negocio.direccion;
+const datos = {
+  '@context': 'https://schema.org',
+  '@type': negocio.tipoSchemaOrg,
+  name: negocio.nombre,
+  description: negocio.descripcion,
+  url: negocio.sitio.url,
+  ...(negocio.contacto.telefono && { telephone: negocio.contacto.telefono }),
+  ...(negocio.contacto.email && { email: negocio.contacto.email }),
+  ...(d && {
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: d.calle,
+      postalCode: d.codigoPostal,
+      addressLocality: d.localidad,
+      addressRegion: d.provincia,
+      addressCountry: d.pais,
+    },
+  }),
+  ...(d?.coordenadas && {
+    geo: { '@type': 'GeoCoordinates', latitude: d.coordenadas.lat, longitude: d.coordenadas.lng },
+  }),
+  ...(negocio.horarios.length > 0 && {
+    openingHoursSpecification: negocio.horarios.map((h) => ({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: h.dias.map((dia) => mapaDias[dia]),
+      opens: h.abre,
+      closes: h.cierra,
+    })),
+  }),
+  ...(negocio.redes.length > 0 && { sameAs: negocio.redes.map((r) => r.url) }),
+  ...Astro.props.extra,
+};
+
+// Con datos pendientes o en modo demo no se publican datos estructurados.
+const publicar = pendientes.length === 0 && !negocio.esDemo;
+---
+
+{publicar && <script type="application/ld+json" set:html={JSON.stringify(datos)} />}

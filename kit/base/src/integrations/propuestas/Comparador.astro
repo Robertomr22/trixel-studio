@@ -1,0 +1,205 @@
+---
+/**
+ * Página interna /propuestas: compara las direcciones visuales en móvil y escritorio.
+ * Lee los metadatos de src/propuestas/propuestas.json. No forma parte de la web final.
+ */
+import fichas from '../../propuestas/propuestas.json';
+import { negocio } from '../../data/negocio';
+
+interface Ficha {
+  id: string;
+  titulo: string;
+  concepto: string;
+  tipografia?: string;
+  paleta?: string[];
+  ronda?: number;
+}
+
+const lista = (fichas as { propuestas: Ficha[] }).propuestas;
+// Enlaces relativos: funcionan en `astro dev` (/propuestas/a) y en el build estático
+// publicado en cualquier ruta o como artifact (propuestas/a.html).
+const enlace = (id: string) => (import.meta.env.DEV ? `propuestas/${id}` : `propuestas/${id}.html`);
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Propuestas · {negocio.nombre}</title>
+  </head>
+  <body>
+    <header>
+      <p class="marca">Trixel Studio · propuestas visuales</p>
+      <h1>{negocio.nombre}</h1>
+      <div class="vistas" role="group" aria-label="Tamaño de vista previa">
+        <button type="button" data-vista="movil" aria-pressed="true">Móvil</button>
+        <button type="button" data-vista="escritorio" aria-pressed="false">Escritorio</button>
+      </div>
+    </header>
+
+    <main class="rejilla" data-vista="movil">
+      {
+        lista.map((p) => (
+          <article>
+            <header class="ficha">
+              <p class="id">
+                Propuesta {p.id.toUpperCase()}
+                {p.ronda && p.ronda > 1 && <span> · ronda {p.ronda}</span>}
+              </p>
+              <h2>{p.titulo}</h2>
+              <p class="concepto">{p.concepto}</p>
+              {p.tipografia && <p class="detalle">{p.tipografia}</p>}
+              {p.paleta && (
+                <ul class="paleta" aria-label="Paleta">
+                  {p.paleta.map((c) => (
+                    <li style={`--c:${c}`} title={c} />
+                  ))}
+                </ul>
+              )}
+              <a href={enlace(p.id)} target="_blank" rel="noopener">
+                Abrir a pantalla completa ↗
+              </a>
+            </header>
+            <div class="marco">
+              <iframe src={enlace(p.id)} title={`Vista previa propuesta ${p.id}`} loading="lazy" />
+            </div>
+          </article>
+        ))
+      }
+    </main>
+
+    <script>
+      const rejilla = document.querySelector<HTMLElement>('.rejilla');
+      document.querySelectorAll<HTMLButtonElement>('[data-vista]').forEach((boton) => {
+        if (boton.tagName !== 'BUTTON') return;
+        boton.addEventListener('click', () => {
+          document
+            .querySelectorAll('button[data-vista]')
+            .forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
+          if (rejilla) rejilla.dataset.vista = boton.dataset.vista ?? 'movil';
+        });
+      });
+      // En escritorio el iframe mide 1440 px y se escala al ancho disponible.
+      const escalar = new ResizeObserver((entradas) => {
+        for (const e of entradas) {
+          (e.target as HTMLElement).style.setProperty('--escala', String(e.contentRect.width / 1440));
+        }
+      });
+      document.querySelectorAll('.marco').forEach((m) => escalar.observe(m));
+    </script>
+
+    <style is:global>
+      body {
+        margin: 0;
+        background: #ecebe8;
+        color: #161616;
+        font: 15px/1.5 system-ui, sans-serif;
+      }
+      body > header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 0.5rem 2rem;
+        padding: 1.5rem clamp(1rem, 3vw, 2.5rem);
+        border-bottom: 1px solid #cfcdc8;
+      }
+      .marca {
+        width: 100%;
+        margin: 0;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6b6963;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        flex: 1;
+      }
+      .vistas button {
+        border: 1px solid #161616;
+        background: transparent;
+        padding: 0.4rem 0.9rem;
+        font: inherit;
+      }
+      .vistas button[aria-pressed='true'] {
+        background: #161616;
+        color: #fff;
+      }
+      .rejilla {
+        display: grid;
+        gap: 2rem;
+        padding: 2rem clamp(1rem, 3vw, 2.5rem);
+      }
+      .rejilla[data-vista='movil'] {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
+      }
+      .ficha h2 {
+        margin: 0.1rem 0 0.4rem;
+        font-size: 1.15rem;
+      }
+      .ficha p {
+        margin: 0 0 0.4rem;
+      }
+      .id {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6b6963;
+      }
+      .detalle {
+        color: #4a4843;
+        font-size: 0.85rem;
+      }
+      .paleta {
+        display: flex;
+        gap: 4px;
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0;
+      }
+      .paleta li {
+        width: 28px;
+        height: 28px;
+        background: var(--c);
+        border: 1px solid rgb(0 0 0 / 0.15);
+      }
+      .ficha a {
+        color: inherit;
+      }
+      .marco {
+        margin-top: 1rem;
+        background: #fff;
+        border: 1px solid #cfcdc8;
+        overflow: hidden;
+      }
+      .rejilla[data-vista='movil'] .marco {
+        width: 390px;
+        max-width: 100%;
+        height: 760px;
+      }
+      .rejilla[data-vista='movil'] iframe {
+        width: 390px;
+        height: 760px;
+      }
+      .rejilla[data-vista='escritorio'] {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .rejilla[data-vista='escritorio'] .marco {
+        height: calc(1200px * var(--escala, 0.6));
+      }
+      .rejilla[data-vista='escritorio'] iframe {
+        width: 1440px;
+        height: 1200px;
+        transform: scale(var(--escala, 0.6));
+        transform-origin: 0 0;
+      }
+      iframe {
+        border: 0;
+        display: block;
+      }
+    </style>
+  </body>
+</html>

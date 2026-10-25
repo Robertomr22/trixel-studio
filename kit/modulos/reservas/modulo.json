@@ -1,0 +1,47 @@
+{
+  "nombre": "reservas",
+  "descripcion": "Solicitudes de reserva con disponibilidad real por aforo y turno, confirmación desde panel, correos y cancelación por enlace.",
+  "servidor": true,
+  "dependencias": {
+    "@astrojs/node": "^11.1.9",
+    "drizzle-orm": "^0.45.4",
+    "mysql2": "^3.24.6",
+    "nodemailer": "^10.2.1"
+  },
+  "devDependencias": {
+    "drizzle-kit": "^0.31.11"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "admin:clave": "node scripts/admin-clave.mjs",
+    "db:generar": "drizzle-kit generate",
+    "db:migrar": "drizzle-kit migrate"
+  },
+  "entorno": [
+    "# --- Reservas ---",
+    "# Base de datos MySQL/MariaDB (en Hostinger: hPanel > Bases de datos)",
+    "DATABASE_URL=mysql://usuario:contraseña@localhost:3306/nombre_bd",
+    "# Panel /admin: genera ADMIN_HASH y SESION_SECRETO con `npm run admin:clave`",
+    "ADMIN_USUARIO=",
+    "ADMIN_HASH=",
+    "SESION_SECRETO=",
+    "# Quién recibe los avisos de nuevas reservas",
+    "EMAIL_AVISOS=",
+    "# Correo remitente (buzón del dominio) y su SMTP. Sin SMTP en local, los correos se guardan en .correos/",
+    "EMAIL_REMITENTE=",
+    "SMTP_HOST=",
+    "SMTP_PUERTO=465",
+    "SMTP_USUARIO=",
+    "SMTP_CLAVE=",
+    "# Opcional: URL base para los enlaces de los correos (por defecto, la de negocio.json)",
+    "URL_PUBLICA="
+  ],
+  "archivosProyecto": [
+    "src/data/reservas.config.ts"
+  ],
+  "notas": [
+    "Rellena src/data/reservas.config.ts con los datos REALES del restaurante y pon configurado: true.",
+    "Integra <FormularioReserva /> en el diseño del proyecto (o adapta src/pages/reservar.astro).",
+    "En Hostinger: plan Business o Cloud, app Node.js, archivo de entrada server.mjs."
+  ]
+}

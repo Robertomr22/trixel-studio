@@ -1,0 +1,30 @@
+---
+/**
+ * Página de reservas por defecto del módulo. En el desarrollo de cada web se integra el
+ * formulario en el layout y la dirección de arte del proyecto (o se sustituye esta página).
+ */
+import Base from '../layouts/Base.astro';
+import FormularioReserva from '../components/reservas/FormularioReserva.astro';
+import { negocio } from '../data/negocio';
+---
+
+<Base titulo={`Reservar mesa · ${negocio.nombre}`} descripcion={`Reserva tu mesa en ${negocio.nombre}: elige día, hora y número de personas y te confirmamos por correo.`}>
+  <main id="contenido" class="reservar">
+    <h1>Reservar mesa</h1>
+    <FormularioReserva titulo="Solicitud de reserva" />
+  </main>
+</Base>
+
+<style>
+  .reservar {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 6vw, 5rem) 1.25rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: clamp(2rem, 6vw, 3rem);
+    margin-bottom: 2rem;
+  }
+</style>

@@ -1,0 +1,32 @@
+#!/bin/sh
+# Bloquea commits que incluyan archivos .env o claves con pinta de secreto.
+# Instalado por tools/nuevo-proyecto.mjs en cada repositorio de cliente.
+
+fallo=0
+archivos=$(git diff --cached --name-only --diff-filter=ACM)
+
+for f in $archivos; do
+  case "$f" in
+    *.env|*.env.*|*/.env|*/.env.*)
+      case "$f" in *.env.example) ;; *)
+        echo "✗ Archivo de entorno en el commit: $f (los secretos no van al repositorio)"; fallo=1 ;;
+      esac ;;
+  esac
+done
+
+if [ -n "$archivos" ]; then
+  coincidencias=$(git diff --cached -U0 -- $archivos | grep -E '^\+' | grep -Ei \
+    '(sk_live_[0-9a-z]{10,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(api[_-]?key|secret|password|clave|token)["'"'"']?\s*[:=]\s*["'"'"'][^"'"'"'$]{12,})' \
+    | grep -v 'PENDIENTE' | head -5)
+  if [ -n "$coincidencias" ]; then
+    echo "✗ Posible secreto en el commit:"
+    echo "$coincidencias"
+    fallo=1
+  fi
+fi
+
+if [ $fallo -ne 0 ]; then
+  echo "Commit cancelado. Si es un falso positivo, revísalo y usa: git commit --no-verify"
+  exit 1
+fi
+exit 0

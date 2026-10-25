@@ -1,0 +1,76 @@
+---
+import Legal from '../../layouts/Legal.astro';
+import { negocio } from '../../data/negocio';
+import { tratamientos } from '../../data/legal';
+
+const t = negocio.titular;
+---
+
+<Legal
+  titulo={`Política de privacidad · ${negocio.nombre}`}
+  descripcion={`Cómo trata ${negocio.nombre} los datos personales recogidos en esta web.`}
+>
+  <h1>Política de privacidad</h1>
+
+  <h2>Responsable del tratamiento</h2>
+  <p>
+    {t.nombreORazonSocial} (NIF {t.nif}), con domicilio en {t.domicilio}. Contacto:
+    <a href={`mailto:${t.email}`}>{t.email}</a>.
+  </p>
+
+  <h2>Qué datos tratamos y para qué</h2>
+  {
+    tratamientos.length === 0 ? (
+      <p>
+        Esta web no recoge datos personales mediante formularios. Si nos escribes por correo electrónico, teléfono o
+        WhatsApp, usaremos tus datos solo para responderte y no los conservaremos más tiempo del necesario.
+      </p>
+    ) : (
+      <div class="tabla-scroll" tabindex="0" role="region" aria-label="Tratamientos de datos personales">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Actividad</th>
+              <th scope="col">Datos</th>
+              <th scope="col">Finalidad</th>
+              <th scope="col">Base jurídica</th>
+              <th scope="col">Conservación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tratamientos.map((tr) => (
+              <tr>
+                <td>{tr.actividad}</td>
+                <td>{tr.datos.join(', ')}</td>
+                <td>{tr.finalidad}</td>
+                <td>{tr.baseJuridica}</td>
+                <td>{tr.conservacion}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  <h2>Destinatarios</h2>
+  <p>
+    No cedemos datos a terceros salvo obligación legal.
+    {
+      tratamientos.some((tr) => tr.encargados.length > 0) &&
+        ` Para prestar el servicio acceden a ellos, como encargados del tratamiento: ${[
+          ...new Set(tratamientos.flatMap((tr) => tr.encargados)),
+        ].join(', ')}.`
+    }
+  </p>
+
+  <h2>Tus derechos</h2>
+  <p>
+    Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad
+    escribiendo a <a href={`mailto:${t.email}`}>{t.email}</a>. Si consideras que no hemos atendido correctamente tu
+    solicitud, puedes reclamar ante la Agencia Española de Protección de Datos (<a
+      href="https://www.aepd.es"
+      rel="noopener">www.aepd.es</a
+    >).
+  </p>
+</Legal>

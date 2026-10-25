@@ -1,0 +1,45 @@
+---
+/**
+ * Esqueleto técnico común: <head>, SEO, enlace "saltar al contenido" y aviso de demo.
+ * NO define estética. Cada proyecto crea su propio layout (p. ej. src/layouts/Sitio.astro)
+ * que envuelve a este y añade cabecera, pie, fuentes y estilos de su dirección de arte.
+ */
+import Seo from '../components/seo/Seo.astro';
+import { negocio } from '../data/negocio';
+import '../styles/base.css';
+
+interface Props {
+  titulo: string;
+  descripcion: string;
+  imagen?: string;
+  noindex?: boolean;
+  /** Color de la barra del navegador en móvil. */
+  colorTema?: string;
+  claseBody?: string;
+}
+
+const { titulo, descripcion, imagen, noindex, colorTema, claseBody } = Astro.props;
+---
+
+<!doctype html>
+<html lang={negocio.sitio.idioma}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {colorTema && <meta name="theme-color" content={colorTema} />}
+    <Seo titulo={titulo} descripcion={descripcion} imagen={imagen} noindex={noindex} />
+    <slot name="head" />
+  </head>
+  <body class={claseBody}>
+    <a class="saltar-contenido" href="#contenido">Saltar al contenido</a>
+    {
+      negocio.esDemo && (
+        <p class="aviso-demo" role="note">
+          Proyecto de demostración · no es la web oficial del negocio
+        </p>
+      )
+    }
+    <slot />
+  </body>
+</html>

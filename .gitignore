@@ -1,0 +1,11 @@
+# Cada cliente tiene su propio repositorio dentro de clientes/
+clientes/*
+!clientes/.gitkeep
+
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.log

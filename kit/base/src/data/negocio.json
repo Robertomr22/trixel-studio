@@ -1,0 +1,16 @@
+{
+  "esDemo": true,
+  "nombre": "PENDIENTE: nombre del negocio",
+  "tipoSchemaOrg": "LocalBusiness",
+  "descripcion": "PENDIENTE: descripción en una o dos frases",
+  "sitio": { "url": "https://example.com", "idioma": "es" },
+  "contacto": {},
+  "horarios": [],
+  "redes": [],
+  "titular": {
+    "nombreORazonSocial": "PENDIENTE: titular",
+    "nif": "PENDIENTE: NIF/CIF",
+    "domicilio": "PENDIENTE: domicilio del titular",
+    "email": "PENDIENTE: email de contacto legal"
+  }
+}
