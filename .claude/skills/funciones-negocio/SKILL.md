@@ -1,6 +1,6 @@
 ---
 name: funciones-negocio
-description: Define el alcance e implementa funcionalidades de negocio en una web de cliente (reservas, carta digital, formularios, citas, WhatsApp, mapas, eventos, catálogos, pagos, blog, idiomas). Úsala al decidir qué nivel de una función necesita el cliente y al integrarla, incluido el módulo de reservas del kit.
+description: Define el alcance e implementa funcionalidades de negocio en una web de cliente (reservas de mesa o de alojamiento, calendarios iCal, carta digital, formularios, citas, WhatsApp, mapas, eventos, catálogos, pagos, blog, idiomas). Úsala al decidir qué nivel de una función necesita el cliente y al integrarla, incluido el módulo de reservas del kit.
 argument-hint: "[slug] [funcionalidad]"
 ---
 
@@ -23,6 +23,7 @@ servicios de pago. Si existe una solución externa fiable que reduce mucho la co
 | Función | Niveles de alcance | Implementación |
 |---|---|---|
 | **Reservas de mesa** | 1) Botón llamar/WhatsApp · 2) Solicitud + confirmación con aforo real (**módulo `reservas`**) · 3) Confirmación automática con mesas · 4) Plataforma externa (TheFork, CoverManager) | Nivel 2: [reservas.md](reservas.md). Nivel 3: ampliar el módulo (alcance grande, presupuesto aparte). Nivel 4: enlace o widget oficial + aviso de cookies si las pone |
+| **Reservas de alojamiento** (casas rurales, apartamentos) | 1) Escaparate + enlace a Booking/Airbnb · 2) Solicitud directa con calendario sincronizado por iCal y confirmación manual (**módulo `alojamiento`**, pendiente de construir) · 3) Reserva y pago online | [alojamiento.md](alojamiento.md) |
 | **Carta digital** | Estática (datos en `src/data/carta.ts`) · editable por el cliente | [carta.md](carta.md). Editable: empezar por archivo de datos + entrega de cambios; panel solo si los cambios son frecuentes |
 | **Formulario de contacto / presupuesto** | Enlace mailto/WhatsApp · formulario con envío por servidor (necesita Node + SMTP) · servicio externo (Formspree, Web3Forms: datos fuera, revisar RGPD) | Con servidor: endpoint como el de reservas (zod, trampa, token, límite, SMTP). Registrar tratamiento en `legal.*.ts` |
 | **WhatsApp** | Enlace `https://wa.me/<número>?text=` | Botón visible en móvil, sin widgets de terceros ni scripts |

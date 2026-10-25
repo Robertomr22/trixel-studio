@@ -15,6 +15,14 @@ mezcla cuando tenga sentido.
 | **Corporativo** | Empresas que necesitan solvencia | Orden, claridad, información estructurada, tono sobrio, accesibilidad impecable | Aburrimiento y anonimato; stock de gente sonriendo |
 | **E-commerce** | Tiendas online | Producto protagonista, fichas claras, filtros útiles, confianza (envíos, devoluciones), compra en pocos pasos | Sobrecarga de banners; distracciones en el embudo |
 
+## Notas por sector
+- **Alojamiento rural**: lo que vende es *estar allí* — la luz, las vistas, el silencio, el camino, la
+  piscina al atardecer. Fotografía grande y secuencias que cuentan la estancia (llegar, despertar,
+  comer fuera, la noche). Información práctica impecable (capacidad, camas, distancias, normas) y
+  disponibilidad siempre a un toque en móvil. Evitar los tópicos: madera envejecida de plantilla,
+  tipografía manuscrita, verdes y beige genéricos, iconos de "wifi/piscina/aire" en rejilla como único
+  contenido. Si hay varias casas, que cada una tenga personalidad dentro de un sistema común.
+
 ## Ideas para salir del territorio genérico
 - Tomar un recurso del mundo físico del negocio: la pizarra del menú del día, el ticket, el plano de
   la sala, la etiqueta del producto, la hoja de obra, el sello del despacho. Reinterpretarlo, no

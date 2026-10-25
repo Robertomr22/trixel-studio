@@ -27,6 +27,8 @@ Entorno: Linux, Node 22.23.4, Astro 7.4.2, MariaDB 10.11 local, Chromium (Playwr
 - Comparador en vista escritorio desbordado → columna acotada.
 - Enlaces del comparador rotos en el build estático → enlaces relativos según entorno.
 - Redirección del panel sin cabeceras de seguridad → middleware reestructurado.
+- Una web **sin** módulos de servidor fallaba `astro check` (la configuración importaba `@astrojs/node`
+  aunque no estuviera instalado) → importación condicional; probados los dos modos (estático y servidor).
 - `$` en el hash de contraseña podía expandirse en `.env` → formato con `:`.
 
 ## Pendiente de verificar fuera de este entorno

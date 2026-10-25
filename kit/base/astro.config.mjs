@@ -16,7 +16,10 @@ const trixel = JSON.parse(readFileSync(new URL('./trixel.json', import.meta.url)
 const modulos = await Promise.all(trixel.modulos.map((m) => import(`./trixel/${m}.mjs`)));
 const esquemaEntorno = Object.assign({}, ...modulos.map((m) => m.entorno?.(envField) ?? {}));
 
-const adaptador = trixel.servidor ? (await import('@astrojs/node')).default({ mode: 'standalone' }) : undefined;
+// El adaptador solo se instala con módulos de servidor; el nombre va en una variable para que
+// las webs estáticas (sin @astrojs/node) pasen la comprobación de tipos.
+const paqueteAdaptador = '@astrojs/node';
+const adaptador = trixel.servidor ? (await import(/* @vite-ignore */ paqueteAdaptador)).default({ mode: 'standalone' }) : undefined;
 
 export default defineConfig({
   site: negocio.sitio.url,

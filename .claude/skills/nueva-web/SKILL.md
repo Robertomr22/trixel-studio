@@ -43,6 +43,8 @@ proyecto listo para `direccion-arte`.
 
 1. Pide el material con la lista de [material.md](material.md) adaptada al sector, diciendo **cómo**
    enviarlo (originales, no capturas de WhatsApp; logo en vector; carta en PDF o foto nítida).
+   Si el cliente ya tiene su contenido publicado en Booking, Airbnb, Google o una web antigua, sigue
+   [fuentes-externas.md](fuentes-externas.md): qué se puede aprovechar y qué no.
 2. Cuando llegue, cópialo a `recursos/` (fotos, logo, textos, referencias) sin modificar los
    originales.
 3. **Examina cada foto** (ábrela con Read): contenido, nitidez, luz, encuadre, resolución, si sirve

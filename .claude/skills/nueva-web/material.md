@@ -15,6 +15,11 @@ Mensaje tipo para el cliente (adáptalo; Roberto lo reenvía):
 ## Por sector, además
 - **Restaurante**: carta con precios y alérgenos; fotos de platos (luz natural, sin flash), sala,
   fachada, equipo; aforo y turnos si hay reservas.
+- **Alojamiento rural**: por cada casa, fotos de exterior, vistas, cada estancia, baños, piscina/
+  jardín y entorno; ficha (capacidad, camas, equipamiento, normas, horario de entrada y salida);
+  número del Registro de Turismo de Andalucía; enlaces a Booking/Airbnb; enlace iCal de
+  exportación del calendario si habrá reservas directas. Si el contenido está en Booking, ver
+  [fuentes-externas.md](fuentes-externas.md).
 - **Clínica**: fotos de instalaciones y profesionales (con su consentimiento), nº de colegiado,
   tratamientos con descripción.
 - **Reformas/instaladores**: fotos de trabajos (antes/después), certificaciones, zonas de servicio.

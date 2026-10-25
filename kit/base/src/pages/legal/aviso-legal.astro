@@ -21,6 +21,20 @@ const t = negocio.titular;
     {negocio.contacto.telefono && <li>Teléfono: {negocio.contacto.telefono}</li>}
     {t.datosRegistro && <li>Datos registrales: {t.datosRegistro}</li>}
   </ul>
+  {
+    negocio.registros.length > 0 && (
+      <>
+        <h2>Registros oficiales</h2>
+        <ul>
+          {negocio.registros.map((r) => (
+            <li>
+              {r.nombre}{r.ambito && ` (${r.ambito})`}: {r.numero}
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
 
   <h2>Condiciones de uso</h2>
   <p>

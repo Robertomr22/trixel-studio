@@ -18,6 +18,18 @@ Elige solo las que falten y cambien el resultado. Cada pregunta con 2–4 opcion
 - Grupos y eventos: ¿aceptan? ¿a partir de cuántas personas?
 - Pedidos a domicilio / para llevar: no · plataforma externa · propio (alcance grande).
 
+## Alojamiento rural / casas rurales / apartamentos turísticos
+- Objetivo: conseguir reservas directas (sin comisión) · solo escaparate que lleva a Booking/Airbnb · ambas.
+- Reservas: enlace a Booking · solicitud por WhatsApp/email · solicitud con disponibilidad sincronizada
+  desde el calendario de Booking (iCal) y confirmación manual (módulo `alojamiento`) · pago online
+  (alcance grande).
+- ¿Cuántos alojamientos? (una ficha por casa: capacidad, dormitorios, baños, camas, equipamiento,
+  normas, precio orientativo si quieren mostrarlo).
+- ¿En qué plataformas están? (Booking, Airbnb, Escapada Rural, Google) → enlaces y calendarios iCal.
+- Número de inscripción en el Registro de Turismo de Andalucía de cada casa (obligatorio en la publicidad).
+- Idiomas: casi siempre español + inglés (turismo extranjero en la Axarquía).
+- Qué hay alrededor que el huésped valora (playa, rutas, pueblos, distancia a Málaga/aeropuerto).
+
 ## Clínica / salud / estética
 - Citas: llamada/WhatsApp · formulario de solicitud · agenda externa (Doctoralia, Calendly…) · propia.
 - Profesionales: ¿fichas con foto y colegiado? Datos de salud = categoría especial RGPD: evitar

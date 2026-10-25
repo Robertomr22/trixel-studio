@@ -31,6 +31,15 @@ Información previa al contrato (precio final con impuestos, gastos de envío, p
 generales, derecho de desistimiento de 14 días y formulario, factura, hojas de reclamaciones según
 comunidad autónoma. Revisión profesional obligatoria.
 
+## Alojamiento turístico (casas rurales, viviendas con fines turísticos)
+- **Número de inscripción en el Registro de Turismo de Andalucía** de cada alojamiento: debe figurar
+  en toda la publicidad, incluida la web propia. Ponerlo en la ficha de cada casa y en el pie.
+- Comprobar con el cliente si sus alojamientos tienen también número del **registro único de
+  arrendamientos** (Real Decreto 1312/2024) y si debe mostrarse.
+- Precios mostrados: finales, con impuestos y gastos obligatorios (limpieza, tasas) o indicando
+  claramente qué no incluyen.
+- El parte de viajeros (registro de huéspedes) no se recoge por la web: minimización.
+
 ## Accesibilidad
 La Ley 11/2023 extiende requisitos de accesibilidad a muchos servicios de comercio electrónico desde
 junio de 2025 (microempresas de servicios exentas en parte). Aplicar WCAG 2.1 AA como estándar de la

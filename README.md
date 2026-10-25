@@ -69,5 +69,5 @@ node tools/capturas.mjs <slug>
 node tools/qa.mjs <slug> --completo
 ```
 
-Más: [docs/arquitectura.md](docs/arquitectura.md) · [docs/mantenimiento.md](docs/mantenimiento.md) ·
+Más: [docs/skills.md](docs/skills.md) · [docs/arquitectura.md](docs/arquitectura.md) · [docs/mantenimiento.md](docs/mantenimiento.md) ·
 [docs/hoja-de-ruta.md](docs/hoja-de-ruta.md)

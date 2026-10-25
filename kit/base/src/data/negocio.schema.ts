@@ -60,6 +60,11 @@ export const negocioSchema = z.object({
     )
     .default([]),
   redes: z.array(z.object({ nombre: z.string(), url: z.url() })).default([]),
+  /**
+   * Registros oficiales que deben mostrarse: inscripción en el Registro de Turismo de Andalucía,
+   * nº de colegiado, registro sanitario… Se muestran en el aviso legal (y donde pida el diseño).
+   */
+  registros: z.array(z.object({ nombre: z.string(), numero: z.string(), ambito: z.string().optional() })).default([]),
   /** Titular de la web para el aviso legal (LSSI art. 10). */
   titular: z.object({
     nombreORazonSocial: z.string(),
