@@ -24,7 +24,10 @@ let salida;
 if (modoPropuestas) {
   const carpeta = join(web, 'src', 'propuestas');
   const ids = existsSync(carpeta)
-    ? readdirSync(carpeta, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort()
+    ? readdirSync(carpeta, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && existsSync(join(carpeta, e.name, 'index.astro')))
+        .map((e) => e.name)
+        .sort()
     : [];
   if (ids.length === 0) salir('No hay propuestas en web/src/propuestas/<id>/index.astro');
   rutas = ids.map((id) => `/propuestas/${id}`);
